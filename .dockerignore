@@ -1,0 +1,11 @@
+﻿node_modules
+build
+.git
+.gitignore
+.env
+.env.local
+Dockerfile
+docker-compose.yml
+README.md
+.terraform
+*.tfstate
