@@ -1,5 +1,6 @@
 import axios from 'axios';
 
+// ĐỊA CHỈ CHUẨN ĐỂ HIỆN VIDEO
 export const BASE_URL = 'https://youtube-v31.p.rapidapi.com';
 
 const options = {
