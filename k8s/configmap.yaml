@@ -1,0 +1,7 @@
+﻿apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: youtube-clone-config
+  namespace: application
+data:
+  REACT_APP_TITLE: "YouTube Clone"
