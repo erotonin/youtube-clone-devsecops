@@ -1,4 +1,4 @@
-﻿name: CI/CD Pipeline
+name: CI/CD Pipeline
 
 on:
   push:
@@ -11,12 +11,14 @@ jobs:
   sonarqube:
     name: SonarQube Scan
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v4
+        uses: SonarSource/sonarqube-scan-action@master
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
@@ -26,8 +28,17 @@ jobs:
     name: Build, Scan and Push Image
     needs: sonarqube
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - uses: actions/checkout@v4
+
+      # Build image TẠM THỜI để quét trước khi login
+      - name: Build Docker Image for Scanning
+        run: |
+          docker build \
+            --build-arg REACT_APP_RAPID_API_KEY="${{ secrets.REACT_APP_RAPID_API_KEY }}" \
+            -t youtube-clone:${{ github.sha }} .
 
       # Quét lỗ hổng bảo mật Dockerfile
       - name: Run Trivy vulnerability scanner
@@ -35,14 +46,14 @@ jobs:
         with:
           image-ref: 'youtube-clone:${{ github.sha }}'
           format: 'table'
-          exit-code: '0' # Đổi thành '1' nếu muốn pipeline fail khi có lỗi
+          exit-code: '0'
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
 
       # Cấu hình AWS Credentials (OIDC)
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v3
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ap-southeast-2
@@ -52,17 +63,17 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      # Build & Push
-      - name: Build and Push to ECR
+      # Tag & Push
+      - name: Tag and Push to ECR
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: youtube-clone
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build \
-            --build-arg REACT_APP_RAPID_API_KEY="${{ secrets.REACT_APP_RAPID_API_KEY }}" \
-            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
-            -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+          docker tag youtube-clone:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker tag youtube-clone:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
