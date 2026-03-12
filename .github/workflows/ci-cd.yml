@@ -1,4 +1,4 @@
-﻿name: CI/CD Pipeline
+name: CI/CD Pipeline
 
 on:
   push:
@@ -16,10 +16,16 @@ jobs:
         with:
           fetch-depth: 0
       - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
+        uses: SonarSource/sonarqube-scan-action@v4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.organization=erotonin
+            -Dsonar.projectKey=erotonin_youtube-clone-devsecops
+            -Dsonar.python.version=3
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
 
   # 2. Build & Scan Docker Image
   build-and-push:
@@ -31,11 +37,11 @@ jobs:
 
       # Quét lỗ hổng bảo mật Dockerfile
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v0.20.0
         with:
           image-ref: 'youtube-clone:${{ github.sha }}'
           format: 'table'
-          exit-code: '0' # Đổi thành '1' nếu muốn pipeline fail khi có lỗi
+          exit-code: '0'
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
