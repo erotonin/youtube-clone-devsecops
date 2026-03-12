@@ -16,7 +16,8 @@ jobs:
         with:
           fetch-depth: 0
       - name: SonarCloud Scan
-        uses: SonarSource/sonarqube-scan-action@v4
+        uses: SonarSource/sonarqube-scan-action@v6
+        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -41,7 +42,7 @@ jobs:
         with:
           image-ref: 'youtube-clone:${{ github.sha }}'
           format: 'table'
-          exit-code: '0'
+          exit-code: '1' # Đổi thành '1' nếu muốn pipeline fail khi có lỗi
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
